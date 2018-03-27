@@ -60,6 +60,13 @@ void send_server_int(int sockfd, int msg)
     #endif 
 }
 
+void send_server_square(int sockfd, char square[2])
+{
+    int n = send(sockfd, square, strlen(square), 0);
+    if (n < 0)
+        perror("ERROR writing square to client socket");
+}
+
 /*
  * Connect Functions
  */
@@ -133,13 +140,45 @@ void draw_board(char board[][10])
     printf("10| %c | %c | %c | %c | %c | %c | %c | %c | %c | %c | \n", board[9][0], board[9][1], board[9][2], board[9][3], board[9][4], board[9][5], board[9][6], board[9][7], board[9][8], board[9][9]);
 }
 
+
+void boat_placement(int sockfd)
+{
+    char col, lig;
+    char line[20];
+    char line2[20];
+    
+    while (1) { /* Ask until we receive. */ 
+        printf("Placez votre porte-avion (4 cases) : \n");
+	    printf("Entrez une colonne (A-I): ");
+	    fgets(line, 20, stdin);
+            printf("Entrez une ligne (0-9) :");
+            fgets(line2, 20, stdin);
+	    col = line[0];
+	    lig = line2[0];
+	    int moveLig = lig - '0';
+        if (col>='A' && col<='I' && moveLig>=0 && moveLig<=9){
+            printf("\n");
+            char square[2];
+            square[0]=col;
+            square[1]=lig;
+            /* Send players move to the server. */
+            send_server_square(sockfd, square);
+            break;
+        } 
+        else
+            printf("\nInvalid input. Try again.\n");
+    }
+}
+
+
 /* Get's the players turn and sends it to the server. */
 void take_turn(int sockfd)
 {
     char buffer[10];
     
     while (1) { /* Ask until we receive. */ 
-        printf("Enter 0-8 to make a move, or 9 for number of active players: ");
+        printf("A vous de jouer ! \n");
+	printf("Entrez une colonne (A-I): ");
 	    fgets(buffer, 10, stdin);
 	    int move = buffer[0] - '0';
         if (move <= 9 && move >= 0){
@@ -198,7 +237,7 @@ int main(int argc, char *argv[])
                            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
                            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, };
 
-    printf("Tic-Tac-Toe\n------------\n");
+    printf("BattleShip\n------------\n");
 
     /* Wait for the game to start. */
     do {
@@ -216,9 +255,12 @@ int main(int argc, char *argv[])
     while(1) {
         recv_msg(sockfd, msg);
 
-        if (!strcmp(msg, "TRN")) { /* Take a turn. */
-	        printf("Your move...\n");
-	        take_turn(sockfd);
+	if(!strcmp(msg, "PLT")) {
+	    boat_placement(sockfd);
+	}
+	else if (!strcmp(msg, "TRN")) { /* Take a turn. */
+	    printf("Your move...\n");
+	    take_turn(sockfd);
         }
         else if (!strcmp(msg, "INV")) { /* Move was invalid. Note that a "TRN" message will always follow an "INV" message, so we will end up at the above case in the next iteration. */
             printf("That position has already been played. Try again.\n"); 
