@@ -2,10 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <unistd.h>
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include <netinet/in.h>
+
+#define MYPORT 4321   // Port du point de connexion
 
 int player_count = 0;
 pthread_mutex_t mutexcount;
@@ -41,7 +44,7 @@ void send_client_msg(int cli_sockfd, char * msg)
 {
     int n = send(cli_sockfd, msg, strlen(msg), 0);
     if (n < 0)
-        error("ERROR writing msg to client socket");
+        perror("ERROR writing msg to client socket");
 }
 
 /* Sends an int to a client socket. */
@@ -49,7 +52,7 @@ void send_client_int(int cli_sockfd, int msg)
 {
     int n = send(cli_sockfd, &msg, sizeof(int), 0);
     if (n < 0)
-        error("ERROR writing int to client socket");
+        perror("ERROR writing int to client socket");
 }
 
 /* Sends a message to both client sockets. */
@@ -66,33 +69,6 @@ void send_clients_int(int * cli_sockfd, int msg)
     send_client_int(cli_sockfd[1], msg);
 }
 
-/*
- * Connect Functions
- */
-
-/* Sets up the listener socket. */
-int setup_listener(int portno)
-{
-    int sockfd;
-    struct sockaddr_in serv_addr;
-
-    /* Get a socket to listen on */
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) 
-        error("ERROR opening listener socket.");
-    
-	/* set up the server info */
-    serv_addr.sin_family = AF_INET;	
-    serv_addr.sin_addr.s_addr = INADDR_ANY;	
-    serv_addr.sin_port = htons(portno);		
-
-    /* Bind the server info to the listener socket. */
-    if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-        error("ERROR binding listener socket.");
-
-    /* Return the socket number. */
-    return sockfd;
-}
 
 /* Sets up the client sockets and client connections. */
 void get_clients(int lis_sockfd, int * cli_sockfd)
@@ -114,7 +90,7 @@ void get_clients(int lis_sockfd, int * cli_sockfd)
     
         if (cli_sockfd[num_conn] < 0)
             /* Horrible things have happened. */
-            error("ERROR accepting a connection from a client."); 
+            perror("ERROR accepting a connection from a client."); 
         
         /* Send the client it's ID. */
         send(cli_sockfd[num_conn], &num_conn, sizeof(int), 0);
@@ -339,13 +315,26 @@ void *run_game(void *thread_data)
 
 int main(int argc, char *argv[])
 {   
-    /* Make sure a port was specified. */
-    if (argc < 2) {
-        fprintf(stderr,"ERROR, no port provided\n");
-        exit(1);
-    }
+
+    int sockfd;
+    struct sockaddr_in serv_addr;
+
+    /* Get a socket to listen on */
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) 
+        perror("ERROR opening listener socket.");
     
-    int lis_sockfd = setup_listener(atoi(argv[1])); /* Listener socket. */
+    /* set up the server info */
+    serv_addr.sin_family = AF_INET;	
+    serv_addr.sin_addr.s_addr = INADDR_ANY;	
+    serv_addr.sin_port = htons(MYPORT);		
+
+    /* Bind the server info to the listener socket. */
+    if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+        perror("ERROR binding listener socket.");
+
+    int lis_sockfd = sockfd; /* Listener socket. */
+
     pthread_mutex_init(&mutexcount, NULL);
 
     while (1) {
@@ -359,8 +348,11 @@ int main(int argc, char *argv[])
             printf("[DEBUG] Starting new game thread...\n");
             #endif
 
-            pthread_t thread; /* Don't really need the thread id for anything in this case, but here it is anyway. */
-            int result = pthread_create(&thread, NULL, run_game, (void *)cli_sockfd); /* Start a new thread for this game. */
+            pthread_t thread;
+
+	    /* Start a new thread for this game. */
+            int result = pthread_create(&thread, NULL, run_game, (void *)cli_sockfd); 
+
             if (result){
                 printf("Thread creation failed with return code %d\n", result);
                 exit(-1);

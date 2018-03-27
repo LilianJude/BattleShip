@@ -51,7 +51,7 @@ int recv_int(int sockfd)
 /* Writes an int to the server socket. */
 void send_server_int(int sockfd, int msg)
 {
-    int n = send(sockfd, &msg, sizeof(int));
+    int n = send(sockfd, &msg, sizeof(int), 0);
     if (n < 0)
         perror("ERROR writing int to server socket");
     
