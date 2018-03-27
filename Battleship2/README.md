@@ -1,20 +1,14 @@
-Tic-Tac-Toe
+Bataille Navale (Projet Client Serveur)
 =============
 
-If you want to see debug messages add,
-
-      #define DEBUG
-
-to the start of both client.c and server.c before compiling. 
-
-To compile, cd to this directory and run: 
+Pour compiler, placez vous dans le répertoire cloné et faites: 
 
       make all
 
-To run the server: 
+Pour lancer le serveur: 
       
-      ./server [some port]
+      ./server [port]
 
-To run the clients: 
+Pour lancer les clients: 
 
-      ./client [server host] [some port]
+      ./client [serveur] [port]
