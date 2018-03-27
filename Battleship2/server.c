@@ -82,8 +82,8 @@ void get_clients(int lis_sockfd, int * cli_sockfd)
     {
 
         /* On écoute jusqu'à ce qu'un client se connecte */
-		 if((listen(lis_sockfd, 253 - player_count)) < 0)
-			 perror("ERROR: listen");
+		if((listen(lis_sockfd, 253 - player_count)) < 0)
+			perror("ERROR: listen");
 
         clilen = sizeof(cli_addr);
 
@@ -200,10 +200,8 @@ void send_player_count(int cli_sockfd)
 /* Checks the board to determine if there is a winner. */
 int check_board(char board[][10], int last_move)
 {
-   
     int row = last_move/10;
     int col = last_move%10;
-
 
     if ( board[row][0] == board[row][1] && board[row][1] == board[row][2] ) { /* Check the row for a win. */
 
@@ -244,6 +242,7 @@ void *run_game(void *thread_data)
                            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
                            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, };
     printf("Game on!\n");
+
 
     /* Send the start message. */
     send_clients_msg(cli_sockfd, "SRT");
